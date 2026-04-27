@@ -42,6 +42,8 @@ export default function Home() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [bookingInProgress, setBookingInProgress] = useState(false);
+  const [customTime, setCustomTime] = useState('');
+  const [useCustomTime, setUseCustomTime] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -95,10 +97,17 @@ export default function Home() {
     };
   }, [currentMonth, supabase]);
 
-  const handleBooking = async (slot: string) => {
+  const handleBooking = async (slot?: string) => {
     if (!user) {
       toast.error('Identity required to reserve slot');
       router.push('/login');
+      return;
+    }
+
+    const timeSlot = useCustomTime ? customTime : slot;
+    
+    if (!timeSlot || timeSlot.trim() === '') {
+      toast.error('Please enter a valid time slot');
       return;
     }
 
@@ -107,7 +116,7 @@ export default function Home() {
       {
         user_id: user.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
-        time_slot: slot,
+        time_slot: timeSlot,
       }
     ]);
 
@@ -119,6 +128,8 @@ export default function Home() {
       }
     } else {
       toast.success('Battleground reserved successfully');
+      setCustomTime('');
+      setUseCustomTime(false);
     }
     setBookingInProgress(false);
   };
@@ -244,29 +255,74 @@ export default function Home() {
                       return (
                         <button
                           key={slot}
-                          disabled={isBooked || bookingInProgress}
-                          onClick={() => handleBooking(slot)}
+                          disabled={isBooked || bookingInProgress || useCustomTime}
+                          onClick={() => {
+                            setUseCustomTime(false);
+                            handleBooking(slot);
+                          }}
                           className={`w-full p-3 md:p-5 rounded-lg md:rounded-2xl flex flex-col gap-1 transition-all text-left relative group ${
                             isBooked 
                               ? 'bg-white/5 opacity-30 grayscale cursor-not-allowed' 
+                              : useCustomTime
+                              ? 'bg-white/5 opacity-40 cursor-not-allowed'
                               : 'bg-white/5 border border-white/5 hover:border-[#10B981]/50 hover:bg-[#10B981]/5'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className={`font-bold text-sm md:text-lg ${isBooked ? 'text-white/20' : 'text-white'}`}>{slot}</span>
-                            {!isBooked && <CheckCircle2 size={14} className="md:w-4 md:h-4 text-[#10B981] opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            <span className={`font-bold text-sm md:text-lg ${isBooked || useCustomTime ? 'text-white/20' : 'text-white'}`}>{slot}</span>
+                            {!isBooked && !useCustomTime && <CheckCircle2 size={14} className="md:w-4 md:h-4 text-[#10B981] opacity-0 group-hover:opacity-100 transition-opacity" />}
                           </div>
-                          <span className={`text-[8px] md:text-[9px] uppercase tracking-widest font-black ${isBooked ? 'text-white/10' : 'text-[#10B981]/50'}`}>
-                            {isBooked ? 'Reserved' : 'Ready'}
+                          <span className={`text-[8px] md:text-[9px] uppercase tracking-widest font-black ${isBooked || useCustomTime ? 'text-white/10' : 'text-[#10B981]/50'}`}>
+                            {isBooked ? 'Reserved' : useCustomTime ? 'Custom Time Active' : 'Ready'}
                           </span>
                         </button>
                       );
                     }) : (
                       <div className="p-6 md:p-10 text-center text-white/10">
                         <Info size={24} className="md:w-8 mx-auto mb-2" />
-                        <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">No slots found</p>
+                        <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Full day available - set custom time</p>
                       </div>
                     )}
+                    
+                    {/* Custom Time Section */}
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <button
+                        onClick={() => setUseCustomTime(!useCustomTime)}
+                        className={`w-full p-3 md:p-4 rounded-lg md:rounded-2xl flex items-center justify-between transition-all ${
+                          useCustomTime
+                            ? 'bg-[#10B981]/20 border border-[#10B981]/50 text-[#10B981]'
+                            : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:border-[#10B981]/30'
+                        }`}
+                      >
+                        <span className="text-xs md:text-sm font-bold uppercase tracking-widest">
+                          {useCustomTime ? '✓ Custom Time' : '+ Add Custom Time'}
+                        </span>
+                      </button>
+                      
+                      {useCustomTime && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-2 space-y-3"
+                        >
+                          <input
+                            type="text"
+                            placeholder="e.g., 09:00 - 11:00"
+                            value={customTime}
+                            onChange={(e) => setCustomTime(e.target.value)}
+                            className="w-full px-3 md:px-4 py-2 md:py-3 bg-white/5 border border-white/10 rounded-lg md:rounded-xl text-white placeholder:text-white/30 text-xs md:text-sm outline-none focus:border-[#10B981]/50 focus:bg-white/10 transition-all"
+                          />
+                          <button
+                            disabled={!customTime.trim() || bookingInProgress}
+                            onClick={() => handleBooking()}
+                            className="w-full px-3 md:px-4 py-2 md:py-3 bg-[#10B981] text-black rounded-lg md:rounded-xl font-bold uppercase tracking-widest text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0D9668] transition-all"
+                          >
+                            {bookingInProgress ? 'Booking...' : 'Book Custom Time'}
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -373,9 +429,9 @@ function renderCells(currentMonth: Date, selectedDate: Date, onDateClick: (d: Da
 function getAvailableSlots(date: Date) {
   const day = getDay(date);
   if (day === 1) return []; // Monday
-  if (day === 0 || day === 6) return generateTimeSlots('06:00', '22:00'); // Weekends
+  if (day === 0 || day === 6) return generateTimeSlots('06:00', '19:00'); // Weekends
   const morning = generateTimeSlots('06:00', '08:00');
-  const evening = generateTimeSlots('16:00', '22:00');
+  const evening = generateTimeSlots('16:00', '19:00');
   return [...morning, ...evening];
 }
 
@@ -383,7 +439,7 @@ function generateTimeSlots(start: string, end: string) {
   const slots = [];
   let current = parseInt(start.split(':')[0]);
   const endHour = parseInt(end.split(':')[0]);
-  while (current < endHour) {
+  while (current + 2 <= endHour) {
     const next = current + 2;
     const formatLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
     slots.push(`${formatLabel(current)} - ${formatLabel(next)}`);
