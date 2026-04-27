@@ -44,6 +44,8 @@ export default function Home() {
   const [bookingInProgress, setBookingInProgress] = useState(false);
   const [customTime, setCustomTime] = useState('');
   const [useCustomTime, setUseCustomTime] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingBookingSlot, setPendingBookingSlot] = useState<string | null>(null);
   
   const supabase = createClient();
   const router = useRouter();
@@ -97,6 +99,17 @@ export default function Home() {
     };
   }, [currentMonth, supabase]);
 
+  const handleBookingRequest = (slot?: string) => {
+    if (!user) {
+      toast.error('Identity required to reserve slot');
+      router.push('/login');
+      return;
+    }
+
+    setPendingBookingSlot(slot || customTime);
+    setShowConfirmation(true);
+  };
+
   const handleBooking = async (slot?: string) => {
     if (!user) {
       toast.error('Identity required to reserve slot');
@@ -104,7 +117,7 @@ export default function Home() {
       return;
     }
 
-    const timeSlot = useCustomTime ? customTime : slot;
+    const timeSlot = useCustomTime ? customTime : (slot || pendingBookingSlot);
     
     if (!timeSlot || timeSlot.trim() === '') {
       toast.error('Please enter a valid time slot');
@@ -258,7 +271,7 @@ export default function Home() {
                           disabled={isBooked || bookingInProgress || useCustomTime}
                           onClick={() => {
                             setUseCustomTime(false);
-                            handleBooking(slot);
+                            handleBookingRequest(slot);
                           }}
                           className={`w-full p-3 md:p-5 rounded-lg md:rounded-2xl flex flex-col gap-1 transition-all text-left relative group ${
                             isBooked 
@@ -315,7 +328,7 @@ export default function Home() {
                           />
                           <button
                             disabled={!customTime.trim() || bookingInProgress}
-                            onClick={() => handleBooking()}
+                            onClick={() => handleBookingRequest()}
                             className="w-full px-3 md:px-4 py-2 md:py-3 bg-[#10B981] text-black rounded-lg md:rounded-xl font-bold uppercase tracking-widest text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0D9668] transition-all"
                           >
                             {bookingInProgress ? 'Booking...' : 'Book Custom Time'}
@@ -364,6 +377,69 @@ export default function Home() {
             </p>
          </div>
       </section>
+
+      {/* Booking Confirmation Dialog */}
+      <AnimatePresence>
+        {showConfirmation && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowConfirmation(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-md glass p-8 md:p-12 rounded-3xl border-2 border-[#10B981]/40 bg-gradient-to-br from-[#10B981]/10 to-white/[0.02]">
+                <h3 className="text-3xl md:text-4xl font-bold text-white tracking-tighter mb-2">Confirm Booking</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#10B981] mb-6">Are you sure?</p>
+                
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 space-y-4">
+                  <div>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Date</p>
+                    <p className="text-lg font-bold text-white">{format(selectedDate, 'EEEE, MMM do, yyyy')}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Time</p>
+                    <p className="text-lg font-bold text-[#10B981]">{pendingBookingSlot || customTime}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setShowConfirmation(false)}
+                    className="flex-1 px-6 py-3 bg-white/5 text-white rounded-xl font-bold uppercase tracking-widest text-sm hover:bg-white/10 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={bookingInProgress}
+                    onClick={() => {
+                      setShowConfirmation(false);
+                      handleBooking(pendingBookingSlot || undefined);
+                    }}
+                    className="flex-1 px-6 py-3 bg-[#10B981] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:bg-[#0D9668] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {bookingInProgress ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Booking...
+                      </>
+                    ) : (
+                      'Yes, Book It!'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
