@@ -1,0 +1,12 @@
+[
+  {
+    "email": "admin1@arenahub.com",
+    "name": "John Admin",
+    "password": "SecurePassword123!"
+  },
+  {
+    "email": "admin2@arenahub.com",
+    "name": "Jane Admin",
+    "password": "SecurePassword456!"
+  }
+]

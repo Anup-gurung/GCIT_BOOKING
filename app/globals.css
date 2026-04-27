@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply antialiased bg-[#050505] text-[#E5E7EB] selection:bg-[#10B981] selection:text-black;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm;
+  }
+  
+  .pitch-green {
+    @apply text-[#10B981];
+  }
+  
+  .bg-pitch-green {
+    @apply bg-[#10B981];
+  }
+
+  .slot-available {
+    @apply border border-[#10B981]/30 bg-[#10B981]/5 hover:bg-[#10B981]/10 hover:border-[#10B981] transition-all;
+  }
+
+  .slot-booked {
+    @apply opacity-30 cursor-not-allowed bg-white/5 grayscale;
+  }
+
+  .slot-maintenance {
+    @apply border border-dashed border-red-500/50 text-red-400 bg-red-500/5 cursor-not-allowed;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
